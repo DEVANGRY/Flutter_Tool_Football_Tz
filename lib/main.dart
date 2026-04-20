@@ -1,4 +1,8 @@
+library bookie_management_app;
+
 import 'package:flutter/material.dart';
+
+part 'screens/admin/admin_page.dart';
 
 void main() {
   runApp(const BookieManagementApp());
@@ -312,6 +316,12 @@ class _HomePageState extends State<HomePage> {
         matches: matches,
         onToggleHedgeStatus: _toggleHedgeStatus,
       ),
+      AdminPage(
+        matches: matches,
+        onAddMatch: _addMatch,
+        onUpdateOdds: _updateMatchOdds,
+        onDeleteMatch: _deleteMatch,
+      ),
       SettingsPage(
         threshold: riskThreshold,
         onChanged: (value) {
@@ -331,6 +341,10 @@ class _HomePageState extends State<HomePage> {
             label: 'Dashboard',
           ),
           NavigationDestination(icon: Icon(Icons.swap_horiz), label: 'Hedging'),
+          NavigationDestination(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            label: 'Admin',
+          ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             label: 'Cài đặt',
@@ -369,6 +383,39 @@ class _HomePageState extends State<HomePage> {
       order.status = order.status == HedgeStatus.pending
           ? HedgeStatus.settled
           : HedgeStatus.pending;
+    });
+  }
+
+  void _addMatch(String title, double oddA, double oddB, double oddDraw) {
+    setState(() {
+      matches.add(
+        MatchItem(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          title: title,
+          oddA: oddA,
+          oddB: oddB,
+          oddDraw: oddDraw,
+        ),
+      );
+    });
+  }
+
+  void _updateMatchOdds(
+    MatchItem match,
+    double oddA,
+    double oddB,
+    double oddDraw,
+  ) {
+    setState(() {
+      match.oddA = oddA;
+      match.oddB = oddB;
+      match.oddDraw = oddDraw;
+    });
+  }
+
+  void _deleteMatch(MatchItem match) {
+    setState(() {
+      matches.removeWhere((m) => m.id == match.id);
     });
   }
 
@@ -958,21 +1005,24 @@ class HedgingManagementPage extends StatelessWidget {
                 Text('Đẩy ${money(hedge.amount)} - ${sideLabel(hedge.side)}'),
                 Text('Nhà cái đối ứng: ${hedge.targetBookie}'),
                 Text('Thời gian: ${formatTime(hedge.createdAt)}'),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Chip(
-                  label: Text(
-                    hedge.status == HedgeStatus.pending ? 'Đang chờ' : 'Đã thu',
-                  ),
-                ),
+                const SizedBox(height: 6),
                 TextButton(
                   onPressed: () => onToggleHedgeStatus(hedge),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: const Size(0, 30),
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                  ),
                   child: const Text('Đổi trạng thái'),
                 ),
               ],
+            ),
+            trailing: Chip(
+              label: Text(
+                hedge.status == HedgeStatus.pending ? 'Đang chờ' : 'Đã thu',
+              ),
+              visualDensity: VisualDensity.compact,
             ),
           ),
         );
