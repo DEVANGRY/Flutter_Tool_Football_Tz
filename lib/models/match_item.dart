@@ -4,8 +4,8 @@ import 'hedge_order.dart';
 class MatchItem {
   final String id;
   final String title;
-  final nameTeamA;
-  final nameTeamB;
+  final String nameTeamA;
+  final String nameTeamB;
   double oddA;
   double oddB;
   double oddDraw;
@@ -38,4 +38,21 @@ class MatchItem {
       bets.where((e) => e.side == BetSide.draw).fold(0, (s, e) => s + e.amount);
 
   double get totalPool => poolA + poolB + poolDraw;
+
+  // Hedge getters
+  double get hedgeA => hedges
+      .where((e) => e.side == BetSide.teamA && e.status == HedgeStatus.pending)
+      .fold(0, (s, e) => s + e.amount);
+
+  double get hedgeB => hedges
+      .where((e) => e.side == BetSide.teamB && e.status == HedgeStatus.pending)
+      .fold(0, (s, e) => s + e.amount);
+
+  double get hedgeDraw => hedges
+      .where((e) => e.side == BetSide.draw && e.status == HedgeStatus.pending)
+      .fold(0, (s, e) => s + e.amount);
+
+  double get netExposureA => poolA - hedgeA;
+  double get netExposureB => poolB - hedgeB;
+  double get netExposureDraw => poolDraw - hedgeDraw;
 }

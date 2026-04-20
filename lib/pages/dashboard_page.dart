@@ -1,11 +1,24 @@
-import 'package:first_block/data/sample_data.dart';
 import 'package:flutter/material.dart';
+import '../models/match_item.dart';
+import '../models/bet_entry.dart';
 import '../services/risk_engine.dart';
 import '../widgets/match_card.dart';
 import '../utils/format.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final List<MatchItem> matches;
+  final double riskThreshold;
+  final Function(String matchId, BetSide side, double amount) onAddBet;
+  final Function(String matchId, double oddA, double oddB, double oddDraw)
+  onUpdateOdds;
+
+  const DashboardPage({
+    super.key,
+    required this.matches,
+    required this.riskThreshold,
+    required this.onAddBet,
+    required this.onUpdateOdds,
+  });
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -14,7 +27,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
-    final matches = sampleMatches;
+    final matches = widget.matches;
     final now = DateTime.now();
 
     final totalMatches = matches.length;
@@ -23,7 +36,9 @@ class _DashboardPageState extends State<DashboardPage> {
       (sum, m) => sum + m.totalPool,
     );
     final matchesNeedingHedge = matches
-        .where((m) => RiskEngine.calculateRisk(m, 20).shouldHedge)
+        .where(
+          (m) => RiskEngine.calculateRisk(m, widget.riskThreshold).shouldHedge,
+        )
         .length;
     final totalPotentialProfit = matches.fold<double>(0, (sum, m) {
       final pnl =
@@ -230,7 +245,10 @@ class _DashboardPageState extends State<DashboardPage> {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 final match = matches[index];
-                final risk = RiskEngine.calculateRisk(match, 20);
+                final risk = RiskEngine.calculateRisk(
+                  match,
+                  widget.riskThreshold,
+                );
                 return MatchCard(
                   match: match,
                   risk: risk,
@@ -263,7 +281,6 @@ class _DashboardPageState extends State<DashboardPage> {
       'Chủ Nhật',
     ];
     final dayName = days[dt.weekday - 1];
-    print("Month: ${dt.month}");
     final month = dt.month < 10 ? "0${dt.month}" : "${dt.month}";
     return "$dayName, ${dt.day}/$month/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
