@@ -11,6 +11,7 @@ class DashboardPage extends StatefulWidget {
   final Function(String matchId, BetSide side, double amount) onAddBet;
   final Function(String matchId, double oddA, double oddB, double oddDraw)
   onUpdateOdds;
+  final VoidCallback? onOpenBetEntry;
 
   const DashboardPage({
     super.key,
@@ -18,8 +19,8 @@ class DashboardPage extends StatefulWidget {
     required this.riskThreshold,
     required this.onAddBet,
     required this.onUpdateOdds,
+    this.onOpenBetEntry,
   });
-
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
@@ -31,6 +32,8 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _now = DateTime.now();
   }
+
+  @override
   Widget build(BuildContext context) {
     final matches = widget.matches;
     final now = _now;
@@ -268,9 +271,11 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: widget.onOpenBetEntry ?? () {},
         label: const Text("Nhập cược"),
         icon: const Icon(Icons.add),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
     );
   }

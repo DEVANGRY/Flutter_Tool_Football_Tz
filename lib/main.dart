@@ -7,6 +7,7 @@ import 'pages/dashboard_page.dart';
 import 'pages/hedging_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/admin_page.dart';
+import 'pages/bet_entry_page.dart';
 
 void main() {
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -104,7 +105,7 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
 
-  // Thêm bet mới
+  // Thêm bet mới (từ form đơn giản)
   void _addBet(String matchId, BetSide side, double amount) {
     final match = _matches.firstWhere(
       (m) => m.id == matchId,
@@ -127,6 +128,28 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     });
+  }
+
+  // Thêm bet mới từ trang nhập cược đầy đủ
+  void _addBetFromEntryPage(String matchId, BetEntry bet) {
+    final match = _matches.firstWhere(
+      (m) => m.id == matchId,
+      orElse: () => throw Exception("Match not found"),
+    );
+    setState(() {
+      match.bets.add(bet);
+    });
+  }
+
+  // Mở trang nhập cược
+  void _openBetEntryPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            BetEntryPage(matches: _matches, onAddBet: _addBetFromEntryPage),
+      ),
+    );
   }
 
   // Thêm hedge order
@@ -214,6 +237,7 @@ class _HomePageState extends State<HomePage> {
             riskThreshold: _riskThreshold,
             onAddBet: _addBet,
             onUpdateOdds: _updateOdds,
+            onOpenBetEntry: _openBetEntryPage,
           ),
           HedgingPage(
             matches: _matches,
