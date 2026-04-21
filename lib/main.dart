@@ -6,6 +6,7 @@ import 'services/risk_engine.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/hedging_page.dart';
 import 'pages/settings_page.dart';
+import 'pages/admin_page.dart';
 
 void main() {
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -171,6 +172,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // Thêm trận đấu mới
+  void _addMatch(
+    String title,
+    String nameTeamA,
+    String nameTeamB,
+    double oddA,
+    double oddB,
+    double oddDraw,
+  ) {
+    setState(() {
+      _matches.add(
+        MatchItem(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: title,
+          nameTeamA: nameTeamA,
+          nameTeamB: nameTeamB,
+          oddA: oddA,
+          oddB: oddB,
+          oddDraw: oddDraw,
+        ),
+      );
+    });
+  }
+
+  // Xóa trận đấu
+  void _deleteMatch(MatchItem match) {
+    setState(() {
+      _matches.removeWhere((m) => m.id == match.id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,6 +220,14 @@ class _HomePageState extends State<HomePage> {
             riskThreshold: _riskThreshold,
             onAddHedge: _addHedgeOrder,
             onToggleHedgeStatus: _toggleHedgeStatus,
+          ),
+          AdminPage(
+            matches: _matches,
+            onAddMatch: _addMatch,
+            onUpdateOdds: (match, oddA, oddB, oddDraw) {
+              _updateOdds(match.id, oddA, oddB, oddDraw);
+            },
+            onDeleteMatch: _deleteMatch,
           ),
           SettingsPage(
             threshold: _riskThreshold,
@@ -212,6 +252,11 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.swap_horiz_outlined),
             selectedIcon: Icon(Icons.swap_horiz),
             label: 'Hedging',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            selectedIcon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
