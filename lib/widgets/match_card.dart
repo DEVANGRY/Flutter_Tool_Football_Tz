@@ -6,6 +6,7 @@ import 'risk_badge.dart';
 import 'exposure_bar.dart';
 import 'scenario_tile.dart';
 import '../utils/format.dart';
+import '../pages/scenario_detail_page.dart';
 
 class MatchCard extends StatelessWidget {
   final MatchItem match;
@@ -20,9 +21,24 @@ class MatchCard extends StatelessWidget {
     required this.now,
     required this.index,
   });
+  double getPnL(String side) {
+    switch (side) {
+      case "A":
+        return (match.poolB + match.poolDraw) - (match.poolA * match.oddA);
+      case "B":
+        return (match.poolA + match.poolDraw) - (match.poolB * match.oddB);
+      case "D":
+        return (match.poolA + match.poolB) - (match.poolDraw * match.oddDraw);
+      default:
+        return 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final pnlA = getPnL("A");
+    final pnlB = getPnL("B");
+    final pnlD = getPnL("D");
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -81,6 +97,10 @@ class MatchCard extends StatelessWidget {
               spacing: 16,
               runSpacing: 8,
               children: [
+                _info(
+                  "Tổng Tiền Kèo",
+                  "${money(calculateTotalBetAmount(match))}",
+                ),
                 _info("Pool ${match.nameTeamA}", money(match.poolA)),
                 _info("Pool ${match.nameTeamB}", money(match.poolB)),
                 _info("Pool Hòa", money(match.poolDraw)),
@@ -106,21 +126,108 @@ class MatchCard extends StatelessWidget {
                 Expanded(
                   child: ScenarioTile(
                     label: "${match.nameTeamA} thắng",
-                    value: calculatePnL(match, "A"),
+                    value: money(double.parse(calculatePnL(match, "A"))),
+                    pnl: pnlA,
+                    onTap: () {
+                      double payout = match.poolA * match.oddA;
+                      double receive = match.poolB + match.poolDraw;
+                      double pnl = receive - payout;
+                      double total = calculateTotalBetAmount(match);
+                      double percent = (pnl / total) * 100;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ScenarioDetailPage(
+                            title: "${match.nameTeamA} thắng",
+                            matchName: match.title,
+                            side: match.nameTeamA,
+                            payOut: payout,
+                            receive: receive,
+                            pnl: pnl,
+                            percentPnL: percent,
+                            poolDetails: {
+                              "Pool ${match.nameTeamA}": match.poolA,
+                              "Pool ${match.nameTeamB}": match.poolB,
+                              "Pool Hòa": match.poolDraw,
+                            },
+                            oddDetails: {"Odd ${match.nameTeamA}": match.oddA},
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ScenarioTile(
                     label: "${match.nameTeamB} thắng",
-                    value: calculatePnL(match, "B"),
+                    value: money(double.parse(calculatePnL(match, "B"))),
+                    pnl: pnlB,
+                    onTap: () {
+                      double payout = match.poolB * match.oddB;
+                      double receive = match.poolA + match.poolDraw;
+                      double pnl = receive - payout;
+                      double total = calculateTotalBetAmount(match);
+                      double percent = (pnl / total) * 100;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ScenarioDetailPage(
+                            title: "${match.nameTeamB} thắng",
+                            matchName: match.title,
+                            side: match.nameTeamB,
+                            payOut: payout,
+                            receive: receive,
+                            pnl: pnl,
+                            percentPnL: percent,
+                            poolDetails: {
+                              "Pool ${match.nameTeamA}": match.poolA,
+                              "Pool ${match.nameTeamB}": match.poolB,
+                              "Pool Hòa": match.poolDraw,
+                            },
+                            oddDetails: {"Odd ${match.nameTeamB}": match.oddB},
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ScenarioTile(
                     label: "Hòa",
-                    value: calculatePnL(match, "D"),
+                    value: money(double.parse(calculatePnL(match, "D"))),
+                    pnl: pnlD,
+                    onTap: () {
+                      double payout = match.poolDraw * match.oddDraw;
+                      double receive = match.poolA + match.poolB;
+                      double pnl = receive - payout;
+                      double total = calculateTotalBetAmount(match);
+                      double percent = (pnl / total) * 100;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ScenarioDetailPage(
+                            title: "Hòa",
+                            matchName: match.title,
+                            side: "Hòa",
+                            payOut: payout,
+                            receive: receive,
+                            pnl: pnl,
+                            percentPnL: percent,
+                            poolDetails: {
+                              "Pool ${match.nameTeamA}": match.poolA,
+                              "Pool ${match.nameTeamB}": match.poolB,
+                              "Pool Hòa": match.poolDraw,
+                            },
+                            oddDetails: {"Odd Hòa": match.oddDraw},
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

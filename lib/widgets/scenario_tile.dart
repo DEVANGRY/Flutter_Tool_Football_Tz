@@ -1,40 +1,60 @@
 import 'package:flutter/material.dart';
-import '../utils/format.dart';
 
 class ScenarioTile extends StatelessWidget {
   final String label;
   final String value;
+  final double pnl;
+  final VoidCallback onTap;
 
-  const ScenarioTile({super.key, required this.label, required this.value});
+  const ScenarioTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.pnl,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    double moneyValue =
-        double.tryParse(value.replaceAll("+", "").replaceAll("-", "")) ?? 0;
-    final isProfit =
-        (value[0] == "+" ? double.parse(value) : double.parse(value)) >= 0;
+    final isProfit = pnl >= 0;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: (isProfit ? Colors.green : Colors.red).withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-          Text(
-            "${isProfit ? "+" : "-"}${money(moneyValue)}",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: isProfit ? Colors.green : Colors.red,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isProfit
+              ? Colors.green.withOpacity(0.1)
+              : Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isProfit ? Colors.green : Colors.red),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isProfit ? Colors.green : Colors.red,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Chi tiết →",
+              style: TextStyle(
+                fontSize: 11,
+                color: isProfit ? Colors.green : Colors.red,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -8,6 +8,9 @@ import 'pages/hedging_page.dart';
 import 'pages/settings_page.dart';
 
 void main() {
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print(details.exception);
+  };
   runApp(const BookieApp());
 }
 
@@ -102,7 +105,10 @@ class _HomePageState extends State<HomePage> {
 
   // Thêm bet mới
   void _addBet(String matchId, BetSide side, double amount) {
-    final match = _matches.firstWhere((m) => m.id == matchId);
+    final match = _matches.firstWhere(
+      (m) => m.id == matchId,
+      orElse: () => throw Exception("Match not found"),
+    );
     final odds = switch (side) {
       BetSide.teamA => match.oddA,
       BetSide.teamB => match.oddB,

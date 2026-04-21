@@ -25,10 +25,15 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  late DateTime _now;
   @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+  }
   Widget build(BuildContext context) {
     final matches = widget.matches;
-    final now = DateTime.now();
+    final now = _now;
 
     final totalMatches = matches.length;
     final totalBetAmount = matches.fold<double>(

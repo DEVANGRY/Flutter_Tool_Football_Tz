@@ -33,3 +33,7 @@ String calculatePnL(MatchItem match, String result) {
 
   return "$totalPayout";
 }
+
+double calculateTotalBetAmount(MatchItem match) {
+  return match.bets.fold(0, (sum, bet) => sum! + bet.amount) ?? 0;
+}
