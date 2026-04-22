@@ -17,31 +17,40 @@ class RiskMetrics {
 
 class RiskEngine {
   static RiskMetrics calculateRisk(MatchItem match, double threshold) {
-    double a = match.poolA;
-    double b = match.poolB;
+    final exposures = <BetSide, double>{
+      BetSide.teamA: match.poolA,
+      BetSide.teamB: match.poolB,
+      BetSide.draw: match.poolDraw,
+    };
 
-    double total = a + b;
+    final total = exposures.values.fold<double>(
+      0.0,
+      (sum, value) => sum + value,
+    );
 
     if (total == 0) {
       return RiskMetrics(
-        biasPercent: 0,
+        biasPercent: 0.0,
         shouldHedge: false,
-        hedgeAmount: 0,
+        hedgeAmount: 0.0,
         heavySide: null,
       );
     }
 
-    double bias = ((a - b).abs() / total) * 100;
+    final heavyEntry = exposures.entries.reduce(
+      (current, next) => current.value >= next.value ? current : next,
+    );
 
-    BetSide heavy = a > b ? BetSide.teamA : BetSide.teamB;
-
-    double hedge = (a - b).abs() / 2;
+    final double idealPerSide = total / exposures.length;
+    final double excess = heavyEntry.value - idealPerSide;
+    final double bias =
+        excess <= 0 ? 0.0 : ((excess / total) * 100).toDouble();
 
     return RiskMetrics(
-      biasPercent: bias,
+      biasPercent: bias.toDouble(),
       shouldHedge: bias > threshold,
-      hedgeAmount: hedge,
-      heavySide: heavy,
+      hedgeAmount: (excess <= 0 ? 0.0 : excess).toDouble(),
+      heavySide: excess <= 0 ? null : heavyEntry.key,
     );
   }
 }

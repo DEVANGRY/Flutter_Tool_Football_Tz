@@ -7,6 +7,7 @@ import 'exposure_bar.dart';
 import 'scenario_tile.dart';
 import '../utils/format.dart';
 import '../pages/scenario_detail_page.dart';
+import '../pages/match_detail_page.dart';
 
 class MatchCard extends StatelessWidget {
   final MatchItem match;
@@ -109,6 +110,22 @@ class MatchCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 12),
+
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MatchDetailPage(match: match),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.list_alt),
+                label: const Text('Chi tiet tran'),
+              ),
+            ),
 
             // P/L SECTION
             const Align(
@@ -244,7 +261,7 @@ class MatchCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  "Cần đẩy sang nhà cái khác: ${money(risk.hedgeAmount)} cửa ${risk.heavySide == BetSide.teamA ? match.nameTeamA : match.nameTeamB}",
+                  "Cần đẩy sang nhà cái khác: ${money(risk.hedgeAmount)} cửa ${_heavySideLabel(risk.heavySide)}",
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -274,5 +291,14 @@ class MatchCard extends StatelessWidget {
     final days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     final dayName = days[dt.weekday % 7];
     return "$dayName ${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+  }
+
+  String _heavySideLabel(BetSide? side) {
+    return switch (side) {
+      BetSide.teamA => match.nameTeamA,
+      BetSide.teamB => match.nameTeamB,
+      BetSide.draw => 'Hòa',
+      null => 'không xác định',
+    };
   }
 }

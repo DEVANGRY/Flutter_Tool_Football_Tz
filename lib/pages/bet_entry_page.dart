@@ -67,16 +67,30 @@ class _BetEntryPageState extends State<BetEntryPage> {
     });
   }
 
+  String _normalizeName(String raw) {
+    return raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  double? _parseAmount(String raw) {
+    final compact = raw.replaceAll(RegExp(r'\s+'), '');
+    final digitsOnly = compact.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) return null;
+    return double.tryParse(digitsOnly);
+  }
+
   void _submitBet() {
     if (_selectedMatchId == null || _selectedSide == null) {
       _showSnackBar('Vui lòng chọn trận và cửa cược', Colors.red);
       return;
     }
-    if (_nameController.text.trim().isEmpty) {
+
+    final bettorName = _normalizeName(_nameController.text);
+    if (bettorName.isEmpty) {
       _showSnackBar('Vui lòng nhập tên người đánh', Colors.red);
       return;
     }
-    final amount = double.tryParse(_amountController.text.replaceAll(',', ''));
+
+    final amount = _parseAmount(_amountController.text);
     if (amount == null || amount <= 0) {
       _showSnackBar('Vui lòng nhập số tiền hợp lệ', Colors.red);
       return;
@@ -94,7 +108,7 @@ class _BetEntryPageState extends State<BetEntryPage> {
         _betTime.hour,
         _betTime.minute,
       ),
-      nameTeam: _nameController.text.trim(),
+      nameTeam: bettorName,
     );
 
     widget.onAddBet(_selectedMatchId!, bet);

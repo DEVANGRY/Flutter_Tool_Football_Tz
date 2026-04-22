@@ -218,6 +218,7 @@ class _HedgingPageState extends State<HedgingPage> {
                   match: match,
                   hedgeOrders: match.hedges,
                   bookies: _bookies,
+                  riskThreshold: widget.riskThreshold,
                   onAddOrder: (bookie, side, amount) {
                     widget.onAddHedge(match.id, bookie, side, amount);
                   },
@@ -307,6 +308,7 @@ class _HedgeMatchCard extends StatefulWidget {
   final MatchItem match;
   final List<HedgeOrder> hedgeOrders;
   final List<String> bookies;
+  final double riskThreshold;
   final Function(String bookie, BetSide side, double amount) onAddOrder;
   final Function(String orderId) onUpdateStatus;
 
@@ -314,6 +316,7 @@ class _HedgeMatchCard extends StatefulWidget {
     required this.match,
     required this.hedgeOrders,
     required this.bookies,
+    required this.riskThreshold,
     required this.onAddOrder,
     required this.onUpdateStatus,
   });
@@ -323,16 +326,10 @@ class _HedgeMatchCard extends StatefulWidget {
 }
 
 class _HedgeMatchCardState extends State<_HedgeMatchCard> {
-  late RiskMetrics risk;
-
-  @override
-  void initState() {
-    super.initState();
-    risk = RiskEngine.calculateRisk(widget.match, 20);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final risk = RiskEngine.calculateRisk(widget.match, widget.riskThreshold);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -412,15 +409,25 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
               children: [
                 Expanded(
                   child: _poolInfo(
-                    label: "${widget.match.nameTeamA}",
+                    label: widget.match.nameTeamA,
                     pool: widget.match.poolA,
                     odd: widget.match.oddA,
                     isHeavy: risk.heavySide == BetSide.teamA,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _poolInfo(
-                    label: "${widget.match.nameTeamB}",
+                    label: 'Hòa',
+                    pool: widget.match.poolDraw,
+                    odd: widget.match.oddDraw,
+                    isHeavy: risk.heavySide == BetSide.draw,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _poolInfo(
+                    label: widget.match.nameTeamB,
                     pool: widget.match.poolB,
                     odd: widget.match.oddB,
                     isHeavy: risk.heavySide == BetSide.teamB,
@@ -444,7 +451,9 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "Khuyến nghị hedge: ${money(risk.hedgeAmount)} vào ${risk.heavySide == BetSide.teamA ? widget.match.nameTeamB : widget.match.nameTeamA}",
+                    risk.heavySide == null
+                        ? 'Phân bổ cược đang cân bằng, chưa cần hedge thêm.'
+                        : 'Khuyến nghị hedge: ${money(risk.hedgeAmount)} vào ${_sideDisplayName(_defaultHedgeSide(risk))}',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.blue.shade700,
@@ -559,7 +568,11 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
 
   Widget _hedgeOrderTile(HedgeOrder order) {
     final isPending = order.status == HedgeStatus.pending;
-    final sideLabel = order.side == BetSide.teamA ? "Team A" : "Team B";
+    final sideLabel = switch (order.side) {
+      BetSide.teamA => widget.match.nameTeamA,
+      BetSide.teamB => widget.match.nameTeamB,
+      BetSide.draw => 'Hòa',
+    };
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -642,14 +655,10 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
 
   void _showAddHedgeDialog(BuildContext context) {
     String selectedBookie = widget.bookies.first;
-    BetSide selectedSide = risk.heavySide == BetSide.teamA
-        ? BetSide.teamB
-        : BetSide.teamA;
+    final currentRisk = RiskEngine.calculateRisk(widget.match, widget.riskThreshold);
+    BetSide selectedSide = _defaultHedgeSide(currentRisk);
     final amountController = TextEditingController(
-      text: RiskEngine.calculateRisk(
-        widget.match,
-        20,
-      ).hedgeAmount.toStringAsFixed(0),
+      text: currentRisk.hedgeAmount.toStringAsFixed(0),
     );
 
     showModalBottomSheet(
@@ -735,7 +744,20 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _sideOption(
+                        label: 'Hòa',
+                        odd: widget.match.oddDraw,
+                        isSelected: selectedSide == BetSide.draw,
+                        onTap: () {
+                          setModalState(() {
+                            selectedSide = BetSide.draw;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _sideOption(
                         label: widget.match.nameTeamB,
@@ -855,5 +877,36 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
         ),
       ),
     );
+  }
+
+  BetSide _defaultHedgeSide(RiskMetrics risk) {
+    final candidates = <BetSide>[
+      BetSide.teamA,
+      BetSide.teamB,
+      BetSide.draw,
+    ].where((side) => side != risk.heavySide).toList();
+
+    if (candidates.isEmpty) {
+      return BetSide.teamA;
+    }
+
+    candidates.sort((a, b) => _poolOf(a).compareTo(_poolOf(b)));
+    return candidates.first;
+  }
+
+  double _poolOf(BetSide side) {
+    return switch (side) {
+      BetSide.teamA => widget.match.poolA,
+      BetSide.teamB => widget.match.poolB,
+      BetSide.draw => widget.match.poolDraw,
+    };
+  }
+
+  String _sideDisplayName(BetSide side) {
+    return switch (side) {
+      BetSide.teamA => widget.match.nameTeamA,
+      BetSide.teamB => widget.match.nameTeamB,
+      BetSide.draw => 'Hòa',
+    };
   }
 }
