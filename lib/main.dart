@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'models/match_item.dart';
 import 'models/bet_entry.dart';
 import 'models/hedge_order.dart';
-import 'services/risk_engine.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/hedging_page.dart';
 import 'pages/settings_page.dart';
@@ -285,9 +284,9 @@ class _HomePageState extends State<HomePage> {
             label: 'Hedging',
           ),
           NavigationDestination(
-            icon: Icon(Icons.admin_panel_settings_outlined),
-            selectedIcon: Icon(Icons.admin_panel_settings),
-            label: 'Admin',
+            icon: Icon(Icons.sports_soccer_outlined),
+            selectedIcon: Icon(Icons.sports_soccer),
+            label: 'Matches',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

@@ -134,41 +134,6 @@ class SettingsPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Kiến trúc đề xuất
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.architecture,
-                                color: Colors.purple,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Kiến trúc đề xuất',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildRecommendation(
-                            'State Management: Provider hoặc Bloc',
-                          ),
-                          _buildRecommendation('Local DB: Isar / Hive'),
-                          _buildRecommendation('Biểu đồ nâng cao: fl_chart'),
-                          _buildRecommendation(
-                            'Tách layers: models / services / providers / screens / widgets',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -186,20 +151,6 @@ class SettingsPage extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(color: Colors.grey.shade600)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendation(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check_circle, size: 16, color: Colors.green),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text)),
         ],
       ),
     );
