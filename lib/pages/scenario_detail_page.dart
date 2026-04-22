@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:first_block/models/match_item.dart';
 import 'package:first_block/utils/format.dart';
 
 class ScenarioDetailPage extends StatelessWidget {
@@ -129,7 +128,7 @@ class ScenarioDetailPage extends StatelessWidget {
                         children: [
                           Text(e.key, style: const TextStyle(fontSize: 13)),
                           Text(
-                            "${e.value.toStringAsFixed(2)}",
+                            e.value.toStringAsFixed(2),
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,

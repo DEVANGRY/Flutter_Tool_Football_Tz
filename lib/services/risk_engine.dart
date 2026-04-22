@@ -2,55 +2,137 @@ import '../models/match_item.dart';
 import '../models/bet_entry.dart';
 
 class RiskMetrics {
+  final double profitA;
+  final double profitDraw;
+  final double profitB;
+  final double worstLoss;
+  final BetSide? worstSide;
+  final double hedgeAmount;
+  final double hedgeOdd;
+  final double afterProfitA;
+  final double afterProfitDraw;
+  final double afterProfitB;
+  final double afterWorstLoss;
+  final double improvement;
   final double biasPercent;
   final bool shouldHedge;
-  final double hedgeAmount;
   final BetSide? heavySide;
 
   RiskMetrics({
+    required this.profitA,
+    required this.profitDraw,
+    required this.profitB,
+    required this.worstLoss,
+    required this.worstSide,
     required this.biasPercent,
     required this.shouldHedge,
     required this.hedgeAmount,
+    required this.hedgeOdd,
+    required this.afterProfitA,
+    required this.afterProfitDraw,
+    required this.afterProfitB,
+    required this.afterWorstLoss,
+    required this.improvement,
     required this.heavySide,
   });
 }
 
 class RiskEngine {
   static RiskMetrics calculateRisk(MatchItem match, double threshold) {
-    final exposures = <BetSide, double>{
-      BetSide.teamA: match.poolA,
-      BetSide.teamB: match.poolB,
-      BetSide.draw: match.poolDraw,
+    final totalPool = match.poolA + match.poolDraw + match.poolB;
+
+    final profitA = totalPool - (match.poolA * match.oddA);
+    final profitDraw = totalPool - (match.poolDraw * match.oddDraw);
+    final profitB = totalPool - (match.poolB * match.oddB);
+
+    final profits = <BetSide, double>{
+      BetSide.teamA: profitA,
+      BetSide.draw: profitDraw,
+      BetSide.teamB: profitB,
     };
 
-    final total = exposures.values.fold<double>(
-      0.0,
-      (sum, value) => sum + value,
+    final worstEntry = profits.entries.reduce(
+      (current, next) => current.value <= next.value ? current : next,
+    );
+    final worstSide = worstEntry.key;
+    final worstLoss = worstEntry.value;
+
+    final hedgeOdd = _oddOf(match, worstSide);
+    final shouldHedge = worstLoss < 0;
+    final hedgeAmount = shouldHedge && hedgeOdd > 1
+        ? worstLoss.abs() / (hedgeOdd - 1)
+        : 0.0;
+
+    final afterProfitA = _afterProfit(
+      side: BetSide.teamA,
+      oldProfit: profitA,
+      worstSide: worstSide,
+      hedgeAmount: hedgeAmount,
+      hedgeOdd: hedgeOdd,
+    );
+    final afterProfitDraw = _afterProfit(
+      side: BetSide.draw,
+      oldProfit: profitDraw,
+      worstSide: worstSide,
+      hedgeAmount: hedgeAmount,
+      hedgeOdd: hedgeOdd,
+    );
+    final afterProfitB = _afterProfit(
+      side: BetSide.teamB,
+      oldProfit: profitB,
+      worstSide: worstSide,
+      hedgeAmount: hedgeAmount,
+      hedgeOdd: hedgeOdd,
     );
 
-    if (total == 0) {
-      return RiskMetrics(
-        biasPercent: 0.0,
-        shouldHedge: false,
-        hedgeAmount: 0.0,
-        heavySide: null,
-      );
-    }
-
-    final heavyEntry = exposures.entries.reduce(
-      (current, next) => current.value >= next.value ? current : next,
+    final afterWorstLoss = [afterProfitA, afterProfitDraw, afterProfitB].reduce(
+      (current, next) => current <= next ? current : next,
     );
-
-    final double idealPerSide = total / exposures.length;
-    final double excess = heavyEntry.value - idealPerSide;
-    final double bias =
-        excess <= 0 ? 0.0 : ((excess / total) * 100).toDouble();
+    final improvement = afterWorstLoss - worstLoss;
+    final biasPercent = totalPool > 0
+        ? (worstLoss.abs() / totalPool) * 100
+        : 0.0;
 
     return RiskMetrics(
-      biasPercent: bias.toDouble(),
-      shouldHedge: bias > threshold,
-      hedgeAmount: (excess <= 0 ? 0.0 : excess).toDouble(),
-      heavySide: excess <= 0 ? null : heavyEntry.key,
+      profitA: profitA,
+      profitDraw: profitDraw,
+      profitB: profitB,
+      worstLoss: worstLoss,
+      worstSide: worstSide,
+      biasPercent: biasPercent,
+      shouldHedge: shouldHedge && biasPercent > threshold,
+      hedgeAmount: hedgeAmount,
+      hedgeOdd: hedgeOdd,
+      afterProfitA: afterProfitA,
+      afterProfitDraw: afterProfitDraw,
+      afterProfitB: afterProfitB,
+      afterWorstLoss: afterWorstLoss,
+      improvement: improvement,
+      heavySide: shouldHedge ? worstSide : null,
     );
+  }
+
+  static double _oddOf(MatchItem match, BetSide side) {
+    return switch (side) {
+      BetSide.teamA => match.oddA,
+      BetSide.draw => match.oddDraw,
+      BetSide.teamB => match.oddB,
+    };
+  }
+
+  static double _afterProfit({
+    required BetSide side,
+    required double oldProfit,
+    required BetSide worstSide,
+    required double hedgeAmount,
+    required double hedgeOdd,
+  }) {
+    if (hedgeAmount <= 0) {
+      return oldProfit;
+    }
+    if (side == worstSide) {
+      return oldProfit + (hedgeAmount * (hedgeOdd - 1));
+    }
+    return oldProfit - hedgeAmount;
   }
 }

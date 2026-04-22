@@ -1,4 +1,4 @@
-library bookie_management_app;
+library;
 
 import 'package:flutter/material.dart';
 import 'models/match_item.dart';

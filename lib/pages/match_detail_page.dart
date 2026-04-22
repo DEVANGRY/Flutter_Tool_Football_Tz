@@ -66,7 +66,7 @@ class MatchDetailPage extends StatelessWidget {
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: displayBets.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final bet = displayBets[index];
                       return _BetTile(match: match, bet: bet, index: index);

@@ -100,7 +100,7 @@ class MatchCard extends StatelessWidget {
               children: [
                 _info(
                   "Tổng Tiền Kèo",
-                  "${money(calculateTotalBetAmount(match))}",
+                  money(calculateTotalBetAmount(match)),
                 ),
                 _info("Pool ${match.nameTeamA}", money(match.poolA)),
                 _info("Pool ${match.nameTeamB}", money(match.poolB)),

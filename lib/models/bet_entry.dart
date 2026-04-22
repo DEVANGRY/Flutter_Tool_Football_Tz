@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 enum BetSide { teamA, teamB, draw }
 

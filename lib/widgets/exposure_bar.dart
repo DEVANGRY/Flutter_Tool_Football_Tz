@@ -44,7 +44,7 @@ class ExposureBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text("$label")),
+              Expanded(child: Text(label)),
               Text("${(percent * 100).toStringAsFixed(1)}% • ${money(value)}"),
             ],
           ),

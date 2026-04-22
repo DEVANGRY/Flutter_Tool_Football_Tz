@@ -438,32 +438,7 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
           ),
 
           // Hedge amount recommendation
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.lightbulb, color: Colors.blue.shade700, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    risk.heavySide == null
-                        ? 'Phân bổ cược đang cân bằng, chưa cần hedge thêm.'
-                        : 'Khuyến nghị hedge: ${money(risk.hedgeAmount)} vào ${_sideDisplayName(_defaultHedgeSide(risk))}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _hedgeInsightBlock(risk),
 
           // Nút thêm hedge order
           Padding(
@@ -656,7 +631,8 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
   void _showAddHedgeDialog(BuildContext context) {
     String selectedBookie = widget.bookies.first;
     final currentRisk = RiskEngine.calculateRisk(widget.match, widget.riskThreshold);
-    BetSide selectedSide = _defaultHedgeSide(currentRisk);
+    BetSide selectedSide = currentRisk.worstSide ?? BetSide.teamA;
+    bool simulateHedge = true;
     final amountController = TextEditingController(
       text: currentRisk.hedgeAmount.toStringAsFixed(0),
     );
@@ -774,6 +750,28 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
                 ),
                 const SizedBox(height: 16),
 
+                Row(
+                  children: [
+                    Switch(
+                      value: simulateHedge,
+                      onChanged: (value) {
+                        setModalState(() {
+                          simulateHedge = value;
+                        });
+                      },
+                      activeThumbColor: Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        "Simulate Hedge",
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
                 // Nhập số tiền
                 const Text(
                   "Số tiền",
@@ -783,6 +781,7 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
                 TextField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
+                  onChanged: (_) => setModalState(() {}),
                   decoration: InputDecoration(
                     prefixText: "₫ ",
                     border: OutlineInputBorder(
@@ -793,6 +792,27 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
                       vertical: 12,
                     ),
                   ),
+                ),
+                const SizedBox(height: 12),
+                Builder(
+                  builder: (context) {
+                    final amount = double.tryParse(amountController.text) ?? 0;
+                    final selectedOdd = _oddOf(selectedSide);
+                    final simulated = simulateHedge
+                        ? _simulateRisk(
+                            currentRisk,
+                            selectedSide,
+                            amount,
+                            selectedOdd,
+                          )
+                        : currentRisk;
+                    return _hedgeInsightBlock(
+                      simulated,
+                      margin: EdgeInsets.zero,
+                      header: "Preview",
+                      showRawBeforeAfterLabel: false,
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
 
@@ -879,34 +899,172 @@ class _HedgeMatchCardState extends State<_HedgeMatchCard> {
     );
   }
 
-  BetSide _defaultHedgeSide(RiskMetrics risk) {
-    final candidates = <BetSide>[
-      BetSide.teamA,
-      BetSide.teamB,
-      BetSide.draw,
-    ].where((side) => side != risk.heavySide).toList();
-
-    if (candidates.isEmpty) {
-      return BetSide.teamA;
-    }
-
-    candidates.sort((a, b) => _poolOf(a).compareTo(_poolOf(b)));
-    return candidates.first;
-  }
-
-  double _poolOf(BetSide side) {
-    return switch (side) {
-      BetSide.teamA => widget.match.poolA,
-      BetSide.teamB => widget.match.poolB,
-      BetSide.draw => widget.match.poolDraw,
-    };
-  }
-
   String _sideDisplayName(BetSide side) {
     return switch (side) {
       BetSide.teamA => widget.match.nameTeamA,
       BetSide.teamB => widget.match.nameTeamB,
       BetSide.draw => 'Hòa',
     };
+  }
+
+  double _oddOf(BetSide side) {
+    return switch (side) {
+      BetSide.teamA => widget.match.oddA,
+      BetSide.teamB => widget.match.oddB,
+      BetSide.draw => widget.match.oddDraw,
+    };
+  }
+
+  Widget _hedgeInsightBlock(
+    RiskMetrics risk, {
+    EdgeInsetsGeometry margin = const EdgeInsets.symmetric(horizontal: 16),
+    String header = "Phân tích Hedge",
+    bool showRawBeforeAfterLabel = true,
+  }) {
+    return Container(
+      margin: margin,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb, color: Colors.blue.shade700, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                header,
+                style: TextStyle(
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            showRawBeforeAfterLabel ? "TRƯỚC KHI HEDGE" : "BEFORE",
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          _pnlRow(label: widget.match.nameTeamA, value: risk.profitA),
+          _pnlRow(label: "Hòa", value: risk.profitDraw),
+          _pnlRow(label: widget.match.nameTeamB, value: risk.profitB),
+          const SizedBox(height: 6),
+          Text(
+            "Lỗ nhiều nhất: ${money(risk.worstLoss)} (${_sideDisplayName(risk.worstSide ?? BetSide.teamA)})",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red.shade700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "GỢI Ý HEDGE",
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            risk.worstSide == null || risk.hedgeAmount <= 0
+                ? "Không cần hedge thêm."
+                : "Bet ${money(risk.hedgeAmount)} vào ${_sideDisplayName(risk.worstSide!)} @${risk.hedgeOdd.toStringAsFixed(2)}",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const Divider(height: 18),
+          Text(
+            showRawBeforeAfterLabel ? "SAU KHI HEDGE" : "AFTER",
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          _pnlRow(label: widget.match.nameTeamA, value: risk.afterProfitA),
+          _pnlRow(label: "Hòa", value: risk.afterProfitDraw),
+          _pnlRow(label: widget.match.nameTeamB, value: risk.afterProfitB),
+          const SizedBox(height: 6),
+          Text(
+            "Lỗ: ${money(risk.afterWorstLoss)} (Cải thiện từ: ${money(risk.worstLoss)})",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: risk.improvement > 0 ? Colors.green.shade700 : Colors.red.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Cải thiện: +${money(risk.improvement)}",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: risk.improvement > 0 ? Colors.green.shade700 : Colors.red.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pnlRow({required String label, required double value}) {
+    final isProfit = value >= 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 12))),
+          Text(
+            money(value),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isProfit ? Colors.green.shade700 : Colors.red.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  RiskMetrics _simulateRisk(
+    RiskMetrics base,
+    BetSide side,
+    double amount,
+    double odd,
+  ) {
+    final safeAmount = amount < 0 ? 0.0 : amount;
+    final safeOdd = odd <= 1 ? 1.01 : odd;
+
+    double calcAfter(BetSide outcome, double oldProfit) {
+      if (safeAmount <= 0) {
+        return oldProfit;
+      }
+      if (outcome == side) {
+        return oldProfit + (safeAmount * (safeOdd - 1));
+      }
+      return oldProfit - safeAmount;
+    }
+
+    final afterA = calcAfter(BetSide.teamA, base.profitA);
+    final afterDraw = calcAfter(BetSide.draw, base.profitDraw);
+    final afterB = calcAfter(BetSide.teamB, base.profitB);
+    final afterWorst = [afterA, afterDraw, afterB].reduce(
+      (a, b) => a <= b ? a : b,
+    );
+
+    return RiskMetrics(
+      profitA: base.profitA,
+      profitDraw: base.profitDraw,
+      profitB: base.profitB,
+      worstLoss: base.worstLoss,
+      worstSide: side,
+      hedgeAmount: safeAmount,
+      hedgeOdd: safeOdd,
+      afterProfitA: afterA,
+      afterProfitDraw: afterDraw,
+      afterProfitB: afterB,
+      afterWorstLoss: afterWorst,
+      improvement: afterWorst - base.worstLoss,
+      biasPercent: base.biasPercent,
+      shouldHedge: base.shouldHedge,
+      heavySide: side,
+    );
   }
 }

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 String money(double value) {
   final formatter = NumberFormat('#,###', 'vi_VN');
-  return '${formatter.format(value)}';
+  return formatter.format(value);
 }
 
 String sideLabel(dynamic side) {
